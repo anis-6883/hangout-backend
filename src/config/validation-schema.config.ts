@@ -5,5 +5,6 @@ export default Joi.object({
     .valid('development', 'production', 'test')
     .default('development'),
   PORT: Joi.number().default(8080),
-  FRONTEND_URL: Joi.string().uri().optional(),
+  FRONTEND_URL: Joi.string().uri().required(),
+  DATABASE_URL: Joi.string().uri().required(),
 });
