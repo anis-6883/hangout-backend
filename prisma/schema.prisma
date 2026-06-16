@@ -1,25 +1,187 @@
+// Prisma Schema file Formatting Command
+// npx prisma format --schema=./prisma/schema.prisma
+
 datasource db {
   provider = "postgresql"
 }
 
 generator client {
-  provider        = "prisma-client"
-  output          = "./generated"
-  moduleFormat    = "cjs"
+  provider     = "prisma-client"
+  output       = "./generated"
+  moduleFormat = "cjs"
 }
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum SignupProvider {
+  email
+  google
+  github
+}
+
+enum AccountStatus {
+  active
+  inactive
+  banned
+}
+
+enum ConversationType {
+  direct
+  group
+}
+
+enum ParticipantRole {
+  admin
+  member
+}
+
+enum MessageType {
+  text
+  image
+  file
+}
+
+enum DeviceType {
+  mobile
+  desktop
+  tablet
+  unknown
+}
+
+// ============================================================
+// USER
+// ============================================================
 
 model User {
-  id    Int     @default(autoincrement()) @id
-  email String  @unique
-  name  String?
-  posts Post[]
+  id                   Int                       @id @default(autoincrement())
+  name                 String                    @db.VarChar(255)
+  email                String                    @unique @db.VarChar(255)
+  password             String?                   @db.VarChar(255) // nullable for social auth
+  signupProvider       SignupProvider            @default(email)
+  isEmailVerified      Boolean                   @default(false)
+  phone                String?                   @db.VarChar(20)
+  dob                  DateTime?                 @db.Date
+  image                String?                   @db.VarChar(500)
+  bio                  String?                   @db.Text
+  accountStatus        AccountStatus             @default(active)
+  isOnline             Boolean                   @default(false)
+  lastSeenAt           DateTime?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  sessions             UserSession[]
+  settings             UserSettings?
+  conversationsCreated Conversation[]            @relation("ConversationCreator")
+  participants         ConversationParticipant[] @relation("ParticipantUser")
+  membersAdded         ConversationParticipant[] @relation("MemberAddedBy")
+  messagesSent         Message[]
+
+  @@map("users")
 }
 
-model Post {
-  id        Int      @default(autoincrement()) @id
-  title     String
-  content   String?
-  published Boolean? @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
+// ============================================================
+// USER Session
+// ============================================================
+
+model UserSession {
+  id           Int        @id @default(autoincrement())
+  userId       Int
+  refreshToken String     @unique @db.VarChar(512) // store hashed, never raw
+  expiresAt    DateTime
+  deviceName   String?    @db.VarChar(255) // "Chrome on Windows", "iPhone 14"
+  deviceType   DeviceType @default(unknown)
+  userAgent    String?    @db.Text // full raw User-Agent string
+  ipAddress    String?    @db.VarChar(45) // supports both IPv4 and IPv6
+  location     String?    @db.VarChar(255) // "Dhaka, Bangladesh"
+  isRevoked    Boolean    @default(false)
+  lastActiveAt DateTime   @default(now())
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@map("user_sessions")
+}
+
+// ============================================================
+// USER SETTINGS
+// ============================================================
+
+model UserSettings {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  theme     String   @default("light") @db.VarChar(10) // 'light' | 'dark'
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+// ============================================================
+// CONVERSATION
+// ============================================================
+
+model Conversation {
+  id           Int                       @id @default(autoincrement())
+  type         ConversationType          @default(direct)
+  title        String?                   @db.VarChar(100) // null for direct, required for group
+  image        String?                   @db.VarChar(500) // null for direct, optional for group
+  createdBy    Int? // SET NULL on user delete
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  creator      User?                     @relation("ConversationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+// ============================================================
+// CONVERSATION PARTICIPANT
+// ============================================================
+
+model ConversationParticipant {
+  id             Int             @id @default(autoincrement())
+  conversationId Int
+  userId         Int
+  role           ParticipantRole @default(member)
+  addedBy        Int? // who invited this person
+  lastReadAt     DateTime? // drives unread badge
+  joinedAt       DateTime        @default(now())
+  leftAt         DateTime? // null = still active member
+  isHidden       Boolean         @default(false) // has this user deleted the chat
+  deletedAt      DateTime? // when they deleted it
+  updatedAt      DateTime        @updatedAt
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User            @relation("ParticipantUser", fields: [userId], references: [id], onDelete: Cascade)
+  addedByUser    User?           @relation("MemberAddedBy", fields: [addedBy], references: [id], onDelete: SetNull)
+
+  @@unique([conversationId, userId]) // one row per user per conversation
+  @@index([conversationId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+// ============================================================
+// MESSAGE
+// ============================================================
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  senderId       Int? // SET NULL on user delete
+  content        String       @db.Text
+  type           MessageType  @default(text)
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User?        @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt(sort: Desc)])
+  @@map("messages")
 }

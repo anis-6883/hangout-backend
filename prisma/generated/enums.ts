@@ -9,7 +9,54 @@
 * 🟢 You can import this file directly.
 */
 
+export const SignupProvider = {
+  email: 'email',
+  google: 'google',
+  github: 'github'
+} as const
+
+export type SignupProvider = (typeof SignupProvider)[keyof typeof SignupProvider]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const AccountStatus = {
+  active: 'active',
+  inactive: 'inactive',
+  banned: 'banned'
+} as const
+
+export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus]
+
+
+export const ConversationType = {
+  direct: 'direct',
+  group: 'group'
+} as const
+
+export type ConversationType = (typeof ConversationType)[keyof typeof ConversationType]
+
+
+export const ParticipantRole = {
+  admin: 'admin',
+  member: 'member'
+} as const
+
+export type ParticipantRole = (typeof ParticipantRole)[keyof typeof ParticipantRole]
+
+
+export const MessageType = {
+  text: 'text',
+  image: 'image',
+  file: 'file'
+} as const
+
+export type MessageType = (typeof MessageType)[keyof typeof MessageType]
+
+
+export const DeviceType = {
+  mobile: 'mobile',
+  desktop: 'desktop',
+  tablet: 'tablet',
+  unknown: 'unknown'
+} as const
+
+export type DeviceType = (typeof DeviceType)[keyof typeof DeviceType]
