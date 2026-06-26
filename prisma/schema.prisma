@@ -1,6 +1,9 @@
 // Prisma Schema file Formatting Command
 // npx prisma format --schema=./prisma/schema.prisma
 
+// Prisma Migrate Command
+// npx prisma migrate dev
+
 datasource db {
   provider = "postgresql"
 }

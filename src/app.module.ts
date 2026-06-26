@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import appConfig from './config/app.config';
 import validationSchema from './config/validation-schema.config';
+import { UserAuthModule } from './modules/user-auth/user-auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import validationSchema from './config/validation-schema.config';
       load: [appConfig],
       validationSchema,
     }),
+    UserAuthModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

@@ -35,6 +35,25 @@ RUN --mount=type=bind,source=package.json,target=package.json \
     pnpm install --prod --frozen-lockfile
 
 ################################################################################
+# Create a stage for local development with Compose Watch.
+FROM deps as dev
+
+# Install full dependencies, including devDependencies (needed for the Nest CLI's watch mode).
+RUN --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=bind,source=pnpm-workspace.yaml,target=pnpm-workspace.yaml \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# Copy the source so the very first container start has a complete app.
+# Compose Watch takes over from here, syncing changes after this point.
+COPY . .
+
+EXPOSE 8000
+
+CMD ["pnpm", "run", "start:dev"]
+
+################################################################################
 # Create a stage for building the application.
 FROM deps as build
 
@@ -69,7 +88,6 @@ COPY package.json .
 # the built application from the build stage into the image.
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app//dist .//dist
-
 
 # Expose the port that the application listens on.
 EXPOSE 8000
