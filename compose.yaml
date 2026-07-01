@@ -4,6 +4,7 @@ services:
   server:
     build:
       context: .
+      target: ${BUILD_TARGET:-final}
     env_file:
       - .env
     ports:

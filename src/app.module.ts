@@ -16,6 +16,7 @@ import { UserAuthModule } from './modules/user-auth/user-auth.module';
       load: [appConfig],
       validationSchema,
     }),
+    AppModule,
     UserAuthModule,
   ],
   controllers: [AppController],
